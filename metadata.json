@@ -1,0 +1,10 @@
+{
+  "name": "J.A.R.V.I.S. - Assistant Personnel Intelligent",
+  "description": "Assistant personnel intelligent inspiré de Tony Stark avec synthèse et reconnaissance vocale, mémoire adaptative, recherche Web en temps réel et intégration Windows.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
