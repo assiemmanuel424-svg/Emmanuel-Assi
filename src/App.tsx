@@ -15,8 +15,8 @@ import { SmartMusicModal } from './components/SmartMusicModal';
 import { Gpt6OmniModal } from './components/Gpt6OmniModal';
 import { JarvisVisionModal } from './components/JarvisVisionModal';
 import { LiveMemoryWidget } from './components/LiveMemoryWidget';
-import { MinimalJarvisCore } from './components/MinimalJarvisCore';
-import { SystemFoldersModal } from './components/SystemFoldersModal';
+import { JarvisBreathingSphere } from './components/JarvisBreathingSphere';
+import { JarvisMenuDrawer } from './components/JarvisMenuDrawer';
 import { JarvisSearchBar } from './components/JarvisSearchBar';
 import {
   Activity,
@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   Folder,
   FolderOpen,
+  History,
   MessageSquare,
   X,
   Maximize2,
@@ -132,6 +133,7 @@ export default function App() {
   const [workspaceToken, setWorkspaceToken] = useState<string | null>(null);
   const [leftTab, setLeftTab] = useState<'core' | 'memory' | 'shortcuts'>('core');
   const [isFoldersOpen, setIsFoldersOpen] = useState(false);
+  const [menuInitialTab, setMenuInitialTab] = useState<'folders' | 'history'>('folders');
   const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(false);
   const [musicPlaying, setMusicPlaying] = useState<boolean>(smartMusicEngine.getState().isPlaying);
   const [isAutopilotEnabled, setIsAutopilotEnabled] = useState<boolean>(() => {
@@ -910,6 +912,35 @@ Monsieur, mes capteurs visuels sont connectés à votre affichage. Je suis déso
       ]);
 
       speakResponse("À vos ordres, Monsieur. Mon cortex visuel est en ligne. J'ouvre la matrice de vision pour observer l'intégralité de votre écran.");
+      setJarvisState('idle');
+      return;
+    }
+
+    // Menu, Folders & History NLP Reflex
+    if (
+      cleanLower.includes("ouvre le menu") ||
+      cleanLower.includes("affiche le menu") ||
+      cleanLower.includes("montre le menu") ||
+      cleanLower.includes("rassemble les dossiers") ||
+      cleanLower.includes("rassemble tout") ||
+      cleanLower.includes("ouvre les dossiers") ||
+      cleanLower.includes("affiche les dossiers") ||
+      cleanLower.includes("montre les dossiers") ||
+      cleanLower.includes("montre l'historique") ||
+      cleanLower.includes("affiche l'historique") ||
+      cleanLower.includes("ouvre l'historique") ||
+      cleanLower === 'menu' ||
+      cleanLower === 'dossiers' ||
+      cleanLower === 'historique'
+    ) {
+      const isHist = cleanLower.includes('historique');
+      setMenuInitialTab(isHist ? 'history' : 'folders');
+      setIsFoldersOpen(true);
+      speakResponse(
+        isHist
+          ? "J'ouvre l'historique complet de nos échanges, Monsieur."
+          : "J'ouvre le menu rassemblant l'ensemble de vos dossiers système et votre historique, Monsieur."
+      );
       setJarvisState('idle');
       return;
     }
@@ -2140,79 +2171,56 @@ ${
       {/* Subtle Central Holographic Ambient Aura */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_45%,rgba(0,240,255,0.08),rgba(3,7,18,0.95)_70%)]" />
 
-      {/* Top Bar matching images.jpg with spaced J.A.R.V.I.S title and small dossiers */}
+      {/* Top Bar with spaced J.A.R.V.I.S title and unified Menu & History launcher */}
       <header className="relative w-full z-30 px-6 py-4 flex items-center justify-between">
         {/* Left: J . A . R . V . I . S */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="font-['Orbitron'] font-bold text-xs sm:text-sm tracking-[0.4em] text-cyan-400 select-none drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]">
             J . A . R . V . I . S
           </span>
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-950/60 border border-cyan-500/30 text-cyan-300">
+            v6.4 Frontier
+          </span>
         </div>
 
-        {/* Center: Small Folders ("petits dossiers") for instant 1-click access */}
-        <div className="hidden md:flex items-center gap-1.5 p-1 rounded-xl bg-black/40 border border-cyan-500/20 backdrop-blur-md shadow-[0_0_20px_rgba(0,240,255,0.06)]">
-          <button
-            onClick={() => setIsMemoryOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-purple-950/40 border border-transparent hover:border-purple-500/30 text-slate-300 hover:text-purple-200 text-xs font-['Rajdhani'] font-medium transition-all cursor-pointer"
-            title="Dossier Mémoire de JARVIS"
-          >
-            <Folder className="w-3.5 h-3.5 text-purple-400" />
-            <span>Mémoire</span>
-            <span className="text-[10px] text-purple-300 font-mono bg-purple-950/80 px-1 py-0.2 rounded border border-purple-500/30">
-              {memories.filter((m) => m.isActive).length}
-            </span>
-          </button>
+        {/* Center: Unified Menu Button (Rassemble tous les dossiers et l'historique) */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center p-1 rounded-xl bg-black/60 border border-cyan-500/30 backdrop-blur-md shadow-[0_0_20px_rgba(0,240,255,0.12)]">
+            <button
+              onClick={() => {
+                setMenuInitialTab('folders');
+                setIsFoldersOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg hover:bg-cyan-950/60 border border-transparent hover:border-cyan-500/30 text-cyan-200 text-xs font-['Rajdhani'] font-bold transition-all cursor-pointer group"
+              title="Ouvrir tous les dossiers système de J.A.R.V.I.S."
+            >
+              <FolderOpen className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span className="font-['Orbitron'] text-[11px] sm:text-xs tracking-wider">DOSSIERS</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-950 border border-cyan-500/40 text-cyan-300">
+                10
+              </span>
+            </button>
 
-          <button
-            onClick={() => setIsVisionOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-sky-950/40 border border-transparent hover:border-sky-500/30 text-slate-300 hover:text-sky-200 text-xs font-['Rajdhani'] font-medium transition-all cursor-pointer"
-            title="Dossier Cortex Vision : Voir l'écran en direct"
-          >
-            <Folder className="w-3.5 h-3.5 text-sky-400" />
-            <span>Vision</span>
-          </button>
+            <span className="text-slate-700 font-mono px-1">|</span>
 
-          <button
-            onClick={() => setIsSmartMusicOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-cyan-950/40 border border-transparent hover:border-cyan-500/30 text-slate-300 hover:text-cyan-200 text-xs font-['Rajdhani'] font-medium transition-all cursor-pointer"
-            title="Dossier Smart Musique"
-          >
-            <Folder className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Musique</span>
-            {musicPlaying && (
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setIsGpt6Open(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-indigo-950/40 border border-transparent hover:border-indigo-500/30 text-slate-300 hover:text-indigo-200 text-xs font-['Rajdhani'] font-medium transition-all cursor-pointer"
-            title="Dossier Frontier GPT-6"
-          >
-            <Folder className="w-3.5 h-3.5 text-indigo-400" />
-            <span>GPT-6</span>
-          </button>
-
-          <button
-            onClick={() => setIsEvolutionOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-950/40 border border-transparent hover:border-emerald-500/30 text-slate-300 hover:text-emerald-200 text-xs font-['Rajdhani'] font-medium transition-all cursor-pointer"
-            title="Dossier Auto-Évolution & Code"
-          >
-            <Folder className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Évolution</span>
-          </button>
-
-          <button
-            onClick={() => setIsFoldersOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/50 text-cyan-200 text-xs font-['Rajdhani'] font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(0,240,255,0.25)]"
-            title="Ouvrir tous les dossiers système"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-cyan-300" />
-            <span>Tous les dossiers</span>
-          </button>
+            <button
+              onClick={() => {
+                setMenuInitialTab('history');
+                setIsFoldersOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg hover:bg-purple-950/60 border border-transparent hover:border-purple-500/30 text-purple-200 text-xs font-['Rajdhani'] font-bold transition-all cursor-pointer group"
+              title="Consulter l'historique des échanges"
+            >
+              <History className="w-4 h-4 text-purple-400 group-hover:rotate-[-20deg] transition-transform" />
+              <span className="font-['Orbitron'] text-[11px] sm:text-xs tracking-wider">HISTORIQUE</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-purple-950 border border-purple-500/40 text-purple-300">
+                {messages.length}
+              </span>
+            </button>
+          </div>
         </div>
 
-        {/* Right: Online status & Quick Folder Trigger */}
+        {/* Right: Online status & Quick Menu trigger */}
         <div className="flex items-center gap-2.5">
           <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 font-sans select-none">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -2220,21 +2228,23 @@ ${
           </div>
 
           <button
-            onClick={() => setIsFoldersOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-200 text-xs font-['Rajdhani'] font-bold transition-all cursor-pointer md:hidden shadow-[0_0_12px_rgba(0,240,255,0.25)]"
-            title="Ouvrir les dossiers"
+            onClick={() => {
+              setMenuInitialTab('folders');
+              setIsFoldersOpen(true);
+            }}
+            className="p-2 rounded-xl bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-200 transition-all cursor-pointer shadow-[0_0_12px_rgba(0,240,255,0.25)]"
+            title="Ouvrir le menu J.A.R.V.I.S."
           >
-            <FolderOpen className="w-3.5 h-3.5 text-cyan-300" />
-            <span>Dossiers</span>
+            <FolderOpen className="w-4 h-4 text-cyan-300" />
           </button>
         </div>
       </header>
 
-      {/* Main Center Area: Concentric Holographic Brain Core + Search Bar (Pixel-perfect to images.jpg) */}
+      {/* Main Center Area: 3D Breathing & Rotating Sphere + Search Bar */}
       <main className="relative flex-1 flex flex-col items-center justify-center p-4 z-20">
         <div className="w-full max-w-2xl flex flex-col items-center justify-center gap-6 -mt-8 sm:-mt-12">
-          {/* Central Concentric Brain Core */}
-          <MinimalJarvisCore
+          {/* Central 3D Animated Breathing & Rotating Sphere (Fibonacci mesh & orbital rings) */}
+          <JarvisBreathingSphere
             state={jarvisState}
             soundLevel={soundLevel}
             onClick={() => {
@@ -2347,10 +2357,11 @@ ${
         minimalFloating={true}
       />
 
-      {/* System Folders Modal (Toutes les fonctionnalités dans un petit dossier) */}
-      <SystemFoldersModal
+      {/* Unified Jarvis Menu Drawer: Tous les dossiers & Historique rassemblés */}
+      <JarvisMenuDrawer
         isOpen={isFoldersOpen}
         onClose={() => setIsFoldersOpen(false)}
+        initialTab={menuInitialTab}
         onOpenMemory={() => setIsMemoryOpen(true)}
         onOpenVision={() => setIsVisionOpen(true)}
         onOpenSmartMusic={() => setIsSmartMusicOpen(true)}
@@ -2366,6 +2377,11 @@ ${
         routinesCount={routines.length}
         workspaceEmail={workspaceUser?.email || undefined}
         musicPlaying={musicPlaying}
+        messages={messages}
+        onSelectMessage={(text) => handleSendMessage(text)}
+        onReplayAudio={handleReplayAudio}
+        onClearHistory={handleClearHistory}
+        onOpenChatOverlay={() => setIsChatOverlayOpen(true)}
       />
 
       {/* Modals */}

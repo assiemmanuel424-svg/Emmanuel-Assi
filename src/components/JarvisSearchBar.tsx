@@ -137,10 +137,11 @@ export const JarvisSearchBar: React.FC<JarvisSearchBarProps> = ({
         <button
           type="button"
           onClick={onOpenFolders}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 text-amber-200 transition-all cursor-pointer text-[11px]"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/50 hover:bg-cyan-900/70 border border-cyan-500/40 text-cyan-200 transition-all cursor-pointer text-[11px] shadow-[0_0_10px_rgba(0,240,255,0.15)]"
+          title="Ouvrir le menu rassemblant tous les dossiers et l'historique"
         >
-          <FolderOpen className="w-3 h-3 text-amber-400" />
-          <span>📁 Dossiers Système</span>
+          <FolderOpen className="w-3 h-3 text-cyan-400" />
+          <span>📂 Dossiers & Historique</span>
         </button>
       </div>
     </div>
