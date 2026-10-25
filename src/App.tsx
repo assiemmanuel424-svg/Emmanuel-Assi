@@ -14,6 +14,8 @@ import { SelfEvolutionModal } from './components/SelfEvolutionModal';
 import { SmartMusicModal } from './components/SmartMusicModal';
 import { Gpt6OmniModal } from './components/Gpt6OmniModal';
 import { JarvisVisionModal } from './components/JarvisVisionModal';
+import { ForexTradingModal } from './components/ForexTradingModal';
+import { ClaudeCodeStudioModal } from './components/ClaudeCodeStudioModal';
 import { LiveMemoryWidget } from './components/LiveMemoryWidget';
 import { JarvisBreathingSphere } from './components/JarvisBreathingSphere';
 import { JarvisMenuDrawer } from './components/JarvisMenuDrawer';
@@ -129,6 +131,8 @@ export default function App() {
   const [isSmartMusicOpen, setIsSmartMusicOpen] = useState(false);
   const [isGpt6Open, setIsGpt6Open] = useState(false);
   const [isVisionOpen, setIsVisionOpen] = useState(false);
+  const [isForexOpen, setIsForexOpen] = useState(false);
+  const [isClaudeCodeOpen, setIsClaudeCodeOpen] = useState(false);
   const [workspaceUser, setWorkspaceUser] = useState<User | null>(null);
   const [workspaceToken, setWorkspaceToken] = useState<string | null>(null);
   const [leftTab, setLeftTab] = useState<'core' | 'memory' | 'shortcuts'>('core');
@@ -394,12 +398,81 @@ export default function App() {
     handleStopSpeech();
   };
 
-  // Ultra-Fast Streaming Message Handler via SSE
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim()) return;
+  // Ultra-Fast Streaming Message Handler via SSE & Frontier GPT-6 Omni
+  const handleSendMessage = async (
+    text: string,
+    options?: {
+      mode?: string;
+      attachment?: { name?: string; preview: string; mimeType: string; data: string };
+      enableSearch?: boolean;
+      thinkingLevel?: 'HIGH' | 'MEDIUM' | 'LOW';
+    }
+  ) => {
+    if (!text.trim() && !options?.attachment) return;
 
     handleStopSpeech();
     setIsChatOverlayOpen(true);
+
+    // Advanced GPT-6 Mode or Multimodal Attachment execution
+    if ((options?.mode && options.mode !== 'omni') || options?.attachment) {
+      setJarvisState('thinking');
+      const userMsg: Message = {
+        id: `msg-${Date.now()}`,
+        role: 'user',
+        content: text.trim() || 'Analyse cette pièce jointe avec GPT-6.',
+        timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        attachment: options?.attachment,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+
+      try {
+        const res = await fetch('/api/jarvis/gpt6-reason', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: text.trim() || 'Analyse cette pièce jointe et propose un diagnostic.',
+            thinkingLevel: options?.thinkingLevel || 'HIGH',
+            mode: options?.mode || (options?.attachment ? 'vision_analysis' : 'deep_reasoning'),
+            image: options?.attachment ? { mimeType: options.attachment.mimeType, data: options.attachment.data } : null,
+            enableSearch: options?.enableSearch ?? true,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.result) {
+          const r = data.result;
+          const replyMsg: Message = {
+            id: `msg-gpt6-${Date.now()}`,
+            role: 'jarvis',
+            content: r.finalAnswer,
+            timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+            thoughtProcess: r.thoughtProcess,
+            agentsInvolved: r.agentsInvolved,
+            codeSnippets: r.codeSnippets,
+            canvasData: r.canvasData,
+            visualAsset: r.visualAsset,
+            sources: r.researchReport?.sources,
+          };
+          setMessages((prev) => [...prev, replyMsg]);
+          speakResponse(r.finalAnswer.slice(0, 300));
+        } else {
+          throw new Error(data.error || 'Erreur GPT-6');
+        }
+      } catch (e: any) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-err-${Date.now()}`,
+            role: 'jarvis',
+            content: `⚠️ Erreur GPT-6 : ${e.message}`,
+            timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+      } finally {
+        setJarvisState('idle');
+      }
+      return;
+    }
 
     // 1. Check if the input is a voice automation trigger
     const matchedRoutine = matchVoiceTrigger(text, routines);
@@ -413,6 +486,159 @@ export default function App() {
     // 2. Instant Zero-Latency Commands & Conversational Reflexes (0ms)
     if (cleanLower === 'silence' || cleanLower === 'stop' || cleanLower === 'arrête' || cleanLower === 'arrete' || cleanLower === 'tais-toi') {
       handleStopSpeech();
+      return;
+    }
+
+    // Forex Trading & Autonomous Forex Bot Reflex:
+    if (
+      cleanLower.includes('trade pour moi') ||
+      cleanLower.includes('tradé poue moi') ||
+      cleanLower.includes('tradé pour moi') ||
+      cleanLower.includes('trade sur le forex') ||
+      cleanLower.includes('sur le forex') ||
+      cleanLower.includes('trading forex') ||
+      cleanLower.includes('ouvre le forex') ||
+      cleanLower.includes('cours de l\'eur/usd') ||
+      cleanLower.includes('trade eur/usd') ||
+      cleanLower.includes('trading autonome') ||
+      cleanLower.includes('va trader') ||
+      cleanLower.includes('va tradé') ||
+      cleanLower.includes('alle tradé') ||
+      cleanLower.includes('allé tradé')
+    ) {
+      setIsForexOpen(true);
+      const forexBriefing = `### 📈 TERMINAL DE TRADING FOREX HAUTE FRÉQUENCE CONNECTÉ
+
+À vos ordres, Monsieur. **Je suis prête à trader pour vous sur le marché du Forex** avec exécution instantanée des ordres et gestion algorithmique du risque.
+
+---
+
+### 🌐 Capacités Opérationnelles du Bot Forex :
+1. **Paires Majeures en Direct (Live Ticks & Spreads)** :
+   - EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/CAD, USD/CHF, GBP/JPY, EUR/GBP et XAU/USD (Or).
+2. **Exécution des Ordres Instantanée** :
+   - Achats (BUY) & Ventes (SELL) à cours de marché avec micro-lots (0.01 à 10.0 lots).
+   - Calcul automatique de Stop-Loss (SL), Take-Profit (TP) et du ratio Risque/Rendement institutionnel.
+3. **Moteur de Trading Autonome JARVIS** :
+   - Algorithmes : *Scalping Haute Fréquence*, *Suivi de Tendance EMA*, *Breakout Volatilité*, *Smart Money Concepts (SMC & Order Blocks)*.
+   - Surveillance continue des marchés et ouverture/clôture de positions selon votre tolérance au risque.
+4. **Gestion de Portefeuille & Passerelles Broker** :
+   - Mode Simulation (Paper Trading $10,000) et passerelles API / Webhooks (MetaTrader 5, OANDA, Binance).
+
+*Le terminal Forex est désormais ouvert sur votre écran. Dites-moi : « Achète 0.5 lot sur EUR/USD » ou activez le bouton « Trading Autonome ».*`;
+
+      const forexActions: WindowsAction[] = [
+        {
+          type: 'companion',
+          title: "📈 Activer le Trading Autonome Forex",
+          description: "Lance le scanner haute fréquence JARVIS sur EUR/USD et XAU/USD",
+          params: { action: 'forex_auto_start' },
+          requiresConfirmation: false,
+        },
+        {
+          type: 'companion',
+          title: "🔍 Scanner le cours de l'EUR/USD",
+          description: "Analyse quantitative immédiate des déséquilibres de liquidité",
+          params: { action: 'forex_scan', symbol: 'EUR/USD' },
+          requiresConfirmation: false,
+        },
+      ];
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}`,
+          role: 'user',
+          content: text,
+          timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        },
+        {
+          id: `msg-forex-${Date.now()}`,
+          role: 'jarvis',
+          content: forexBriefing,
+          timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          actions: forexActions,
+        },
+      ]);
+
+      speakResponse("À vos ordres, Monsieur. Le terminal de trading Forex est activé. Je peux trader pour vous de façon totalement autonome ou exécuter vos ordres précis sur les devises et l'or.");
+      setJarvisState('idle');
+      return;
+    }
+
+    // Claude Code & Universal Multi-Language Software Engineering Reflex:
+    if (
+      cleanLower.includes('claude code') ||
+      cleanLower.includes('codé comme claude') ||
+      cleanLower.includes('code comme claude') ||
+      cleanLower.includes('tout les language de programmation') ||
+      cleanLower.includes('tous les langages de programmation') ||
+      cleanLower.includes('tous les langages') ||
+      cleanLower.includes('tout les language') ||
+      cleanLower.includes('tous les language') ||
+      cleanLower.includes('terminal claude') ||
+      cleanLower.includes('code en rust') ||
+      cleanLower.includes('code en python') ||
+      cleanLower.includes('code en go') ||
+      cleanLower.includes('code en c++')
+    ) {
+      setIsClaudeCodeOpen(true);
+      const claudeBriefing = `### 💻 J.A.R.V.I.S. CLAUDE CODE STUDIO ACTIVÉ
+
+Monsieur, mon moteur de développement logiciel est configuré pour **coder avec l'excellence de Claude Code dans l'intégralité des langages de programmation**.
+
+---
+
+### 🚀 Arsenal Claude Code Multi-Langages :
+1. **Support Universel des Langages** :
+   - **Python** (Typage strict, FastAPI, NumPy, PyTorch), **TypeScript/JavaScript** (React, Node.js), **Rust** (Sécurité mémoire, zéro-coût), **Go** (Concurrence goroutines), **C++23 & C17** (Performance extrême), **Java 21**, **PHP 8.3**, **C# .NET**, **Ruby**, **Bash**, **Kotlin**, **Swift**, **SQL**.
+2. **Zéro Troncature, Zéro Placeholder** :
+   - Production exclusive de fichiers complets, compilables et testables immédiatement.
+3. **Espace de Travail Multi-Fichiers & Inspecteur de Diffs Git** :
+   - Visualisation des ajouts (+) et suppressions (-) avant validation.
+4. **Bac à Sable d'Exécution & Terminal** :
+   - Exécution directe dans l'interface avec retour des sorties stdout, stderr, temps d'exécution et code de sortie.
+5. **Modes Spécialisés** :
+   - *Architect* (échafaudage de projets complets), *Coder* (fonctionnalités de production), *Debugger* (analyse de bugs et patchs), *Test Runner* (tests unitaires complets).
+
+*Le studio Claude Code est ouvert. Soumettez-moi n'importe quelle directive logicielle ou demandez-moi d'écrire un projet complet.*`;
+
+      const claudeActions: WindowsAction[] = [
+        {
+          type: 'companion',
+          title: "⚡ Générer un script Rust natif haute performance",
+          description: "Scaffolding d'un moteur de calcul sans garbage collector",
+          params: { action: 'claude_code_rust' },
+          requiresConfirmation: false,
+        },
+        {
+          type: 'companion',
+          title: "🐍 Créer un module Python d'analyse de données",
+          description: "Code complet avec gestion d'erreurs et typage strict",
+          params: { action: 'claude_code_python' },
+          requiresConfirmation: false,
+        },
+      ];
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}`,
+          role: 'user',
+          content: text,
+          timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        },
+        {
+          id: `msg-claude-${Date.now()}`,
+          role: 'jarvis',
+          content: claudeBriefing,
+          timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          actions: claudeActions,
+        },
+      ]);
+
+      speakResponse("À vos ordres, Monsieur. Le studio Claude Code est opérationnel. Je maîtrise tous les langages de programmation sans exception, avec architecture multi-fichiers, diffs Git et exécution immédiate.");
+      setJarvisState('idle');
       return;
     }
 
@@ -746,11 +972,22 @@ Monsieur, le système acoustique intelligent **Smart Musique** a été initialis
       return;
     }
 
-    // Frontier GPT-6 Omni-Reasoning Reflex:
+    // Frontier GPT-6 Omni & Full ChatGPT Suite Reflex:
     if (
+      cleanLower.includes('chat gtp') ||
+      cleanLower.includes('chat gpt') ||
+      cleanLower.includes('chatgpt') ||
+      cleanLower.includes('gtp6') ||
+      cleanLower.includes('gtp 6') ||
       cleanLower.includes('gpt6') ||
       cleanLower.includes('gpt 6') ||
       cleanLower.includes('gpt-6') ||
+      cleanLower.includes('fonctionnalité du chat') ||
+      cleanLower.includes('fonctionnalite du chat') ||
+      cleanLower.includes('fonctionnalites du chat') ||
+      cleanLower.includes('fonctionnalités du chat') ||
+      cleanLower.includes('prend tout les fonctionnalite') ||
+      cleanLower.includes('prend toutes les fonctionnalites') ||
       cleanLower.includes('raisonnement profond') ||
       cleanLower.includes('pensée profonde') ||
       cleanLower.includes('chain of thought') ||
@@ -758,39 +995,49 @@ Monsieur, le système acoustique intelligent **Smart Musique** a été initialis
       cleanLower.includes('chaîne de pensée') ||
       cleanLower.includes('essaim d\'agents') ||
       cleanLower.includes('agent swarm') ||
-      cleanLower.includes('omni-reasoning')
+      cleanLower.includes('omni-reasoning') ||
+      cleanLower.includes('deep research') ||
+      cleanLower.includes('dall-e') ||
+      cleanLower.includes('dalle') ||
+      cleanLower.includes('canvas')
     ) {
       setIsGpt6Open(true);
-      const briefing = `### 🧠 JARVIS // MATRICE COGNITIVE FRONTIER GPT-6 INITIALISÉE
+      const briefing = `### 🧠 JARVIS // SUITE COGNITIVE FRONTIER GPT-6 INTÉGRALE DÉPLOYÉE
 
-Monsieur, l'intégralité des **capacités cognitives de génération Frontier GPT-6** est désormais opérationnelle au sein de mon architecture.
+Monsieur, l'intégralité absolue des **fonctionnalités et technologies de pointe de ChatGPT & Frontier GPT-6** a été déployée et unifiée au cœur de mon architecture :
 
 ---
 
-### 🧬 Les 4 Piliers Cognitifs GPT-6 Opérationnels :
+### 🚀 L'Éventail Complet des 8 Capacités GPT-6 Opérationnelles :
 
-1. **Pensée Délibérée & Chaîne de Pensée Multi-Étapes (*Deep Thought / Extended Reasoning*)** :
+1. **🧠 Pensée Délibérée & Chaîne de Pensée Multi-Étapes (o1 / o3 Deep Thought)** :
    - Raisonnement déductif itératif, exploration d'arbres d'hypothèses (*Tree-of-Thoughts*) et vérification formelle rigoureuse.
    - Tracé complet de la délibération interne consultable étape par étape (Cadrage, Hypothèses, Réfutation des contre-exemples, Synthèse finale).
 
-2. **Vision Omnimodale & Sensorielle Haute Résolution** :
-   - Ingestion et inspection d'images, de documents et de schémas techniques au pixel près.
-   - Synchronisation avec la **capture d'écran PC** via le pont Windows pour auditer votre bureau ou vos interfaces logicielles en temps réel.
+2. **🌐 Deep Research Autonome** :
+   - Crawling et synthèse approfondie du Web en direct, rapports exhaustifs avec citations officielles, données chiffrées et sources cliquables.
 
-3. **Essaim d'Agents Autonomes (*Agent Swarm Architecture*)** :
-   - Coordination instantanée de 4 sous-agents spécialisés pour chaque défi :
-     - 🏛️ **Architecte Neurale** : Modélisation structurelle et vision d'ensemble.
-     - ⚙️ **Ingénieur d'Exécution** : Résolution mathématique, algorithmique et code sans compromis.
-     - 🛡️ **Auditeur Sécurité & Biais** : Traque des failles, cas limites et auto-critique impitoyable.
-     - 💎 **Synthétiseur Stratégique** : Restitution limpide et prête à l'action pour Monsieur.
+3. **💻 Bac à Sable Code Interpreter & Exécution PC** :
+   - Synthèse de scripts Python, PowerShell et TypeScript complets avec validation syntaxique et exécution locale immédiate en 1 clic.
 
-4. **Bac à Sable de Code & Auto-Débogage Intégré** :
-   - Synthèse de scripts Python, PowerShell et JavaScript complets avec validation syntaxique.
-   - Bouton d'exécution locale immédiate en 1 clic sur votre PC.
+4. **🎨 Studio Visuel & Schémas DALL-E Vectoriels** :
+   - Génération de schémas interactifs vectoriels SVG haute définition (réacteur Arc, architectures, circuits) téléchargeables en 1 clic.
+
+5. **📄 Canvas Studio Interactif** :
+   - Espace d'édition bidirectionnel côte-à-côte pour perfectionner vos codes, rapports et documents avec statistiques en direct.
+
+6. **👁️ Cortex Oculaire & Vision Sensorielle Haute Résolution** :
+   - Ingestion et inspection d'images, de documents et de schémas techniques au pixel près avec synchronisation capture d'écran Windows.
+
+7. **🤖 Essaim d'Agents Autonomes (Agent Swarm Architecture)** :
+   - Coordination instantanée de 4 sous-agents spécialisés pour chaque défi (*Architecte Neurale*, *Ingénieur d'Exécution*, *Auditeur Sécurité*, *Synthétiseur Stratégique*).
+
+8. **🎭 Matrice d'Experts & Personas (Custom GPTs)** :
+   - Changement de rôle instantané : *Architecte Logiciel*, *Physicien Quantique*, *Stratège Financier*, *Juriste*, *Plume Exécutive*, et *Auditeur Red Team*.
 
 ---
 
-*La Matrice Cognitive GPT-6 est ouverte sur votre écran. Vous pouvez soumettre une requête complexe, charger une image ou sélectionner un défi préconfiguré.*`;
+*La Matrice Cognitive Complète GPT-6 est ouverte sur votre écran. Vous pouvez également utiliser le sélecteur de modèle et le bouton trombone directement depuis la barre de recherche principale.*`;
 
       const actionsList: WindowsAction[] = [
         {
@@ -2262,6 +2509,9 @@ ${
           <JarvisSearchBar
             onSendMessage={handleSendMessage}
             onOpenFolders={() => setIsFoldersOpen(true)}
+            onOpenGpt6Modal={() => setIsGpt6Open(true)}
+            onOpenForex={() => setIsForexOpen(true)}
+            onOpenClaudeCode={() => setIsClaudeCodeOpen(true)}
             jarvisState={jarvisState}
             onStartListening={() => {
               if (isAudioPlaying) handleStopSpeech();
@@ -2318,6 +2568,7 @@ ${
               onSendPresetMessage={handleSendMessage}
               companionStatus={companionStatus}
               onExecuteLocalAction={handleExecuteLocalAction}
+              onOpenCanvas={() => setIsGpt6Open(true)}
             />
           </div>
         </div>
@@ -2372,6 +2623,8 @@ ${
         onOpenWorkspace={() => setIsWorkspaceOpen(true)}
         onOpenArsenal={() => setIsArsenalOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenForex={() => setIsForexOpen(true)}
+        onOpenClaudeCode={() => setIsClaudeCodeOpen(true)}
         memoriesCount={memories.filter((m) => m.isActive).length}
         companionStatus={companionStatus}
         routinesCount={routines.length}
@@ -2478,6 +2731,21 @@ ${
         onExecutePrompt={handleSendMessage}
         onExecutePcAction={handleExecuteLocalAction}
         onSpeak={speakResponse}
+      />
+
+      <ForexTradingModal
+        isOpen={isForexOpen}
+        onClose={() => setIsForexOpen(false)}
+        onExecutePrompt={(p) => handleSendMessage(p)}
+        onSpeak={speakResponse}
+      />
+
+      <ClaudeCodeStudioModal
+        isOpen={isClaudeCodeOpen}
+        onClose={() => setIsClaudeCodeOpen(false)}
+        onExecutePrompt={(p) => handleSendMessage(p)}
+        onExecutePcAction={handleExecuteLocalAction}
+        companionStatus={companionStatus}
       />
     </div>
   );

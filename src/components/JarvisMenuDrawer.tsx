@@ -20,6 +20,8 @@ import {
   MessageSquare,
   Play,
   RotateCcw,
+  TrendingUp,
+  Terminal,
 } from 'lucide-react';
 import { CompanionStatus, MemoryItem, Message } from '../types/jarvis';
 
@@ -37,6 +39,8 @@ interface JarvisMenuDrawerProps {
   onOpenWorkspace: () => void;
   onOpenArsenal: () => void;
   onOpenSettings: () => void;
+  onOpenForex?: () => void;
+  onOpenClaudeCode?: () => void;
   memoriesCount: number;
   companionStatus: CompanionStatus;
   routinesCount: number;
@@ -64,6 +68,8 @@ export const JarvisMenuDrawer: React.FC<JarvisMenuDrawerProps> = ({
   onOpenWorkspace,
   onOpenArsenal,
   onOpenSettings,
+  onOpenForex,
+  onOpenClaudeCode,
   memoriesCount,
   companionStatus,
   routinesCount,
@@ -138,6 +144,32 @@ export const JarvisMenuDrawer: React.FC<JarvisMenuDrawerProps> = ({
       action: () => {
         onClose();
         onOpenGpt6();
+      },
+    },
+    {
+      id: 'forex',
+      title: 'Dossier Forex Trading',
+      subtitle: 'Trading autonome & Devises live',
+      description: 'EUR/USD, pips, stop-loss, take-profit et exécution haute fréquence',
+      icon: TrendingUp,
+      color: 'emerald',
+      badge: 'Forex Bot',
+      action: () => {
+        onClose();
+        if (onOpenForex) onOpenForex();
+      },
+    },
+    {
+      id: 'claude_code',
+      title: 'Dossier Claude Code Studio',
+      subtitle: 'Génie logiciel universel & Sandbox',
+      description: 'Programmation complète dans tous les langages (Python, Rust, Go, C++, TS...)',
+      icon: Terminal,
+      color: 'indigo',
+      badge: 'Claude Code',
+      action: () => {
+        onClose();
+        if (onOpenClaudeCode) onOpenClaudeCode();
       },
     },
     {

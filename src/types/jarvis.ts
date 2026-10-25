@@ -23,6 +23,18 @@ export interface Message {
   sources?: GroundingSource[];
   actions?: WindowsAction[];
   isAudioPlaying?: boolean;
+  thoughtProcess?: Gpt6ThoughtStep[];
+  agentsInvolved?: string[];
+  codeSnippets?: Gpt6CodeSnippet[];
+  canvasData?: Gpt6CanvasData;
+  visualAsset?: Gpt6VisualAsset;
+  mode?: string;
+  attachment?: {
+    name?: string;
+    preview: string;
+    mimeType: string;
+    data: string;
+  };
 }
 
 export interface UserProfile {
@@ -177,12 +189,36 @@ export interface Gpt6CodeSnippet {
   code: string;
 }
 
+export interface Gpt6CanvasData {
+  title: string;
+  type: 'code' | 'document' | 'table';
+  content: string;
+  language?: string;
+}
+
+export interface Gpt6ResearchData {
+  topic: string;
+  keyFindings: string[];
+  sources?: Array<{ title: string; url: string }>;
+  fullReport: string;
+}
+
+export interface Gpt6VisualAsset {
+  title: string;
+  svgContent?: string;
+  prompt: string;
+  style: string;
+}
+
 export interface Gpt6ReasoningResult {
   thoughtProcess: Gpt6ThoughtStep[];
   finalAnswer: string;
   confidenceScore: number;
   agentsInvolved: string[];
   codeSnippets?: Gpt6CodeSnippet[];
+  canvasData?: Gpt6CanvasData;
+  researchReport?: Gpt6ResearchData;
+  visualAsset?: Gpt6VisualAsset;
   suggestedActions?: Array<{ label: string; prompt: string }>;
 }
 
@@ -193,5 +229,163 @@ export interface JarvisVisionAnalysis {
   issuesOrAlerts: string[];
   fullDescription: string;
   suggestedActions: Array<{ label: string; prompt: string }>;
+}
+
+// ==========================================
+// FOREX TRADING TYPES
+// ==========================================
+export type ForexPairSymbol = 'EUR/USD' | 'GBP/USD' | 'USD/JPY' | 'AUD/USD' | 'USD/CAD' | 'USD/CHF' | 'GBP/JPY' | 'EUR/GBP' | 'XAU/USD';
+
+export interface CandleStick {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface ForexPairData {
+  symbol: ForexPairSymbol;
+  name: string;
+  bid: number;
+  ask: number;
+  spreadPips: number;
+  change24hPercent: number;
+  high24h: number;
+  low24h: number;
+  digits: number;
+  candles: CandleStick[];
+}
+
+export interface ForexPosition {
+  id: string;
+  pair: ForexPairSymbol;
+  type: 'BUY' | 'SELL';
+  lotSize: number;
+  openPrice: number;
+  currentPrice: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  floatingPnl: number;
+  floatingPips: number;
+  openTime: string;
+  comment?: string;
+  isAutoTrade?: boolean;
+}
+
+export interface ForexTradeHistoryItem {
+  id: string;
+  pair: ForexPairSymbol;
+  type: 'BUY' | 'SELL';
+  lotSize: number;
+  openPrice: number;
+  closePrice: number;
+  realizedPnl: number;
+  realizedPips: number;
+  openTime: string;
+  closeTime: string;
+  closeReason: 'TP_HIT' | 'SL_HIT' | 'MANUAL' | 'AUTOPILOT';
+}
+
+export type ForexStrategy = 'scalping' | 'trend_following' | 'breakout' | 'smc' | 'arbitrage';
+
+export interface ForexAccountState {
+  balance: number;
+  equity: number;
+  freeMargin: number;
+  usedMargin: number;
+  marginLevelPercent: number;
+  leverage: number;
+  currency: string;
+  isAutoTradingActive: boolean;
+  activeStrategy: ForexStrategy;
+  riskPerTradePercent: number;
+  maxDailyDrawdownPercent: number;
+  brokerMode: 'simulation' | 'metatrader5' | 'oanda' | 'binance';
+  brokerApiKey?: string;
+  brokerWebhookUrl?: string;
+}
+
+export interface ForexAiSignal {
+  symbol: ForexPairSymbol;
+  action: 'STRONG_BUY' | 'BUY' | 'NEUTRAL' | 'SELL' | 'STRONG_SELL';
+  confidence: number;
+  entryPrice: number;
+  stopLoss: number;
+  takeProfit: number;
+  riskRewardRatio: string;
+  reasoning: string;
+  indicators: {
+    rsi: number;
+    macd: string;
+    trend: string;
+    volatility: string;
+  };
+}
+
+// ==========================================
+// CLAUDE CODE MULTI-LANGUAGE STUDIO TYPES
+// ==========================================
+export type ClaudeSupportedLanguage =
+  | 'python'
+  | 'typescript'
+  | 'rust'
+  | 'go'
+  | 'cpp'
+  | 'c'
+  | 'java'
+  | 'php'
+  | 'csharp'
+  | 'ruby'
+  | 'bash'
+  | 'kotlin'
+  | 'swift'
+  | 'sql'
+  | 'html';
+
+export type ClaudeAgentMode = 'architect' | 'coder' | 'debugger' | 'refactor' | 'test_runner';
+
+export interface ClaudeProjectFile {
+  id: string;
+  name: string;
+  path: string;
+  language: ClaudeSupportedLanguage;
+  content: string;
+  isModified?: boolean;
+  diffSummary?: {
+    addedLines: number;
+    removedLines: number;
+  };
+}
+
+export interface ClaudeDiffChunk {
+  file: string;
+  diffText: string;
+  action: 'modified' | 'created' | 'deleted';
+}
+
+export interface ClaudeExecutionOutput {
+  status: 'success' | 'error';
+  stdout: string;
+  stderr: string;
+  executionTimeMs: number;
+  memoryKb?: number;
+  exitCode: number;
+}
+
+export interface ClaudeCodeAgentResponse {
+  summary: string;
+  mode: ClaudeAgentMode;
+  filesToUpdate: Array<{
+    path: string;
+    name: string;
+    language: ClaudeSupportedLanguage;
+    content: string;
+  }>;
+  explanation: string;
+  terminalCommandSuggested?: string;
+  gitCommitMessage?: string;
+  testResultsPreview?: string;
 }
 

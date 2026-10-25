@@ -12,6 +12,13 @@ import {
   Download,
   AlertTriangle,
   Sparkles,
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  Palette,
+  FileText,
+  RefreshCw,
+  Code,
 } from 'lucide-react';
 import { marked } from 'marked';
 import { Message, WindowsAction, CompanionStatus } from '../types/jarvis';
@@ -23,6 +30,7 @@ interface ChatWindowProps {
   onSendPresetMessage: (text: string) => void;
   companionStatus: CompanionStatus;
   onExecuteLocalAction: (action: WindowsAction) => void;
+  onOpenCanvas?: (content: string, title?: string) => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -32,10 +40,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   onSendPresetMessage,
   companionStatus,
   onExecuteLocalAction,
+  onOpenCanvas,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<WindowsAction | null>(null);
+  const [expandedThoughtIds, setExpandedThoughtIds] = useState<Record<string, boolean>>({});
 
   // Auto-scroll to bottom on new messages or thinking state
   useEffect(() => {
@@ -53,9 +63,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const toggleThought = (msgId: string) => {
+    setExpandedThoughtIds((prev) => ({
+      ...prev,
+      [msgId]: !prev[msgId],
+    }));
+  };
+
   const handleActionClick = (action: WindowsAction) => {
     if (action.type === 'protocol' && action.target) {
-      // Direct browser-supported protocol launch
       try {
         window.location.href = action.target;
       } catch (e) {
@@ -95,22 +111,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
+  const handleRegenerate = (msgIndex: number) => {
+    // Find preceding user message
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        onSendPresetMessage(messages[i].content);
+        break;
+      }
+    }
+  };
+
   const starterPrompts = [
     {
-      title: '🧠 Graver dans la Mémoire',
-      text: "Retiens que je développe en TypeScript et que je vis à Paris",
+      title: '🧠 Pensée Profonde o1/o3',
+      text: "Fournis une analyse formelle avec chaîne de pensée sur la décohérence quantique",
     },
     {
-      title: '👁️ Cortex Oculaire',
-      text: "Regarde mon écran et aide-moi à analyser la situation",
+      title: '🌐 Deep Research',
+      text: "Effectue un rapport de recherche approfondi sur l'état de l'art de l'AGI en 2026",
     },
     {
-      title: '🎵 Smart Musique',
-      text: 'Mets de la musique pour travailler (Mode Deep Focus)',
+      title: '💻 Code Interpreter Sandbox',
+      text: "Génère un script Python/PowerShell d'analyse de performance avec gestion des erreurs",
     },
     {
-      title: '⚡ Routine Mode Dev',
-      text: 'Active le mode dev (ouvre VS Code, le Terminal et GitHub)',
+      title: '🎨 DALL-E & Studio Visuel',
+      text: "Génère un schéma vectoriel SVG interactif représentant le réacteur Arc Stark",
     },
   ];
 
@@ -119,7 +145,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Scrollable messages container */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-5 custom-scrollbar"
       >
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto py-8">
@@ -127,10 +153,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <Sparkles className="w-6 h-6 text-cyan-300" />
             </div>
             <h2 className="font-['Orbitron'] font-semibold text-lg text-cyan-100 mb-1">
-              J.A.R.V.I.S. À VOTRE SERVICE
+              J.A.R.V.I.S. // SUITE COGNITIVE GPT-6 TOTALE
             </h2>
             <p className="font-['Rajdhani'] text-sm text-slate-400 mb-6">
-              Je suis prêt, Monsieur. Vous pouvez me parler au micro ou m'écrire pour vos cours, votre code, vos projets et l'optimisation de votre ordinateur.
+              Toutes les technologies ChatGPT & GPT-6 sont activées : pensée o1/o3, deep research, code interpreter, DALL-E, canvas et vision omnimodale.
             </p>
 
             {/* Quick Suggestions Cards */}
@@ -139,7 +165,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 <button
                   key={idx}
                   onClick={() => onSendPresetMessage(prompt.text)}
-                  className="p-3 rounded-lg border border-cyan-500/20 bg-slate-900/40 hover:bg-cyan-950/30 hover:border-cyan-400/50 transition-all text-left group"
+                  className="p-3 rounded-xl border border-cyan-500/20 bg-slate-900/40 hover:bg-cyan-950/40 hover:border-cyan-400/50 transition-all text-left group cursor-pointer"
                 >
                   <div className="font-['Rajdhani'] font-semibold text-xs text-cyan-300 uppercase tracking-wider mb-1 flex items-center justify-between">
                     <span>{prompt.title}</span>
@@ -154,7 +180,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg, msgIdx) => (
           <div
             key={msg.id}
             className={`flex flex-col ${
@@ -164,7 +190,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             {/* Sender Identifier */}
             <div className="flex items-center gap-2 mb-1 px-1">
               <span className="font-['Orbitron'] text-[10px] tracking-wider text-slate-400">
-                {msg.role === 'user' ? 'VOUS' : 'J.A.R.V.I.S.'}
+                {msg.role === 'user' ? 'VOUS' : 'J.A.R.V.I.S. // GPT-6'}
               </span>
               <span className="font-mono text-[9px] text-slate-600">
                 {msg.timestamp}
@@ -179,11 +205,113 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   : 'bg-[#090e1f]/90 border border-cyan-500/20 text-slate-100 mr-6 shadow-lg'
               }`}
             >
+              {/* User Attachment (if any) */}
+              {msg.attachment && (
+                <div className="mb-3 p-2 rounded-lg bg-black/40 border border-cyan-500/30 flex items-center gap-3">
+                  <img
+                    src={msg.attachment.preview}
+                    alt="Pièce jointe"
+                    className="w-16 h-16 object-cover rounded border border-cyan-500/40"
+                  />
+                  <div className="text-xs">
+                    <span className="font-mono text-cyan-300 block font-bold truncate max-w-[200px]">
+                      {msg.attachment.name || 'Image / Capture d\'écran'}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {msg.attachment.mimeType}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* GPT-6 Reasoning Accordion (Chain of Thought o1/o3 style) */}
+              {msg.thoughtProcess && msg.thoughtProcess.length > 0 && (
+                <div className="mb-3 rounded-xl bg-purple-950/30 border border-purple-500/30 overflow-hidden">
+                  <button
+                    onClick={() => toggleThought(msg.id)}
+                    className="w-full px-3 py-2 bg-purple-950/50 hover:bg-purple-900/40 border-b border-purple-500/20 flex items-center justify-between text-xs text-purple-200 font-mono cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Brain className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="font-bold">
+                        PENSÉE ÉTENDUE GPT-6 ({msg.thoughtProcess.length} étapes de délibération)
+                      </span>
+                    </div>
+                    {expandedThoughtIds[msg.id] ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-purple-300" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-purple-300" />
+                    )}
+                  </button>
+
+                  {expandedThoughtIds[msg.id] && (
+                    <div className="p-3 space-y-2 text-xs font-mono bg-black/60">
+                      {msg.thoughtProcess.map((step) => (
+                        <div
+                          key={step.step}
+                          className="p-2 rounded-lg bg-slate-900/60 border border-purple-500/20"
+                        >
+                          <div className="text-purple-300 font-bold mb-0.5">
+                            Étape {step.step} : {step.title}
+                          </div>
+                          <p className="text-slate-300 text-[11px] leading-relaxed whitespace-pre-line pl-2">
+                            {step.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Visual Asset (DALL-E / SVG Diagram) */}
+              {msg.visualAsset?.svgContent && (
+                <div className="mb-3 p-3 rounded-xl bg-black/70 border border-fuchsia-500/30 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-mono text-fuchsia-300 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5" />
+                      <span>{msg.visualAsset.title}</span>
+                    </span>
+                    <span className="text-[10px] text-fuchsia-400">{msg.visualAsset.style}</span>
+                  </div>
+                  <div
+                    className="w-full flex items-center justify-center p-2 bg-slate-950/80 rounded-lg border border-fuchsia-500/20 overflow-hidden"
+                    dangerouslySetInnerHTML={{ __html: msg.visualAsset.svgContent }}
+                  />
+                </div>
+              )}
+
               {/* Message Content rendered with Markdown */}
               <div
                 className="prose prose-invert prose-sm max-w-none prose-headings:font-['Rajdhani'] prose-headings:text-cyan-200 prose-pre:bg-black/60 prose-pre:border prose-pre:border-cyan-500/20 prose-pre:text-cyan-200 prose-code:text-cyan-300 prose-a:text-cyan-400 hover:prose-a:underline"
                 dangerouslySetInnerHTML={renderMarkdown(msg.content)}
               />
+
+              {/* Canvas Data Indicator & Quick Open */}
+              {msg.canvasData && (
+                <div className="mt-3 p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-400" />
+                    <div>
+                      <span className="text-xs font-bold text-indigo-200 block font-['Orbitron']">
+                        {msg.canvasData.title}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Document Canvas disponible pour édition en direct
+                      </span>
+                    </div>
+                  </div>
+                  {onOpenCanvas && (
+                    <button
+                      onClick={() => onOpenCanvas(msg.canvasData!.content, msg.canvasData!.title)}
+                      className="px-3 py-1 rounded bg-indigo-900/80 hover:bg-indigo-800 border border-indigo-400/50 text-indigo-200 text-xs font-bold font-['Rajdhani'] cursor-pointer flex items-center gap-1"
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span>Ouvrir dans Canvas</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Verified Web Grounding Sources */}
               {msg.sources && msg.sources.length > 0 && (
@@ -242,7 +370,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {act.type === 'protocol' && (
                           <button
                             onClick={() => handleActionClick(act)}
-                            className="px-2.5 py-1 text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1"
+                            className="px-2.5 py-1 text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1 cursor-pointer"
                           >
                             <Play className="w-3 h-3" />
                             <span>Lancer</span>
@@ -251,7 +379,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {act.type === 'web' && (
                           <button
                             onClick={() => handleActionClick(act)}
-                            className="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1"
+                            className="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1 cursor-pointer"
                           >
                             <ExternalLink className="w-3 h-3" />
                             <span>Ouvrir</span>
@@ -260,7 +388,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {act.type === 'companion' && (
                           <button
                             onClick={() => handleActionClick(act)}
-                            className="px-2.5 py-1 text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1"
+                            className="px-2.5 py-1 text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1 cursor-pointer"
                           >
                             <Play className="w-3 h-3" />
                             <span>Exécuter sur le PC</span>
@@ -269,7 +397,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {act.type === 'workspace' && (
                           <button
                             onClick={() => handleActionClick(act)}
-                            className="px-2.5 py-1 text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1"
+                            className="px-2.5 py-1 text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 rounded transition-colors whitespace-nowrap flex items-center gap-1 cursor-pointer"
                           >
                             <Play className="w-3 h-3" />
                             <span>Ouvrir dans JARVIS</span>
@@ -281,13 +409,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       {(act.type === 'powershell' || act.type === 'python') && act.target && (
                         <div>
                           <div className="relative mt-1">
-                            <pre className="p-2.5 rounded bg-black/70 border border-slate-700/60 font-mono text-[11px] text-cyan-300 overflow-x-auto max-h-36">
+                            <pre className="p-2.5 rounded bg-black/70 border border-slate-700/60 font-mono text-[11px] text-cyan-300 overflow-x-auto max-h-36 custom-scrollbar">
                               <code>{act.target}</code>
                             </pre>
                             <div className="absolute top-2 right-2 flex items-center gap-1">
                               <button
                                 onClick={() => handleCopyText(`script-${actIdx}`, act.target!)}
-                                className="p-1 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300"
+                                className="p-1 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 cursor-pointer"
                                 title="Copier le script"
                               >
                                 {copiedId === `script-${actIdx}` ? (
@@ -298,7 +426,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               </button>
                               <button
                                 onClick={() => downloadScriptFile(act.target!, act.type as any, act.title)}
-                                className="p-1 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300"
+                                className="p-1 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 cursor-pointer"
                                 title="Télécharger le fichier de script"
                               >
                                 <Download className="w-3 h-3 text-cyan-400" />
@@ -315,7 +443,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             {companionStatus.connected && (
                               <button
                                 onClick={() => handleActionClick(act)}
-                                className="px-2 py-0.5 text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded flex items-center gap-1"
+                                className="px-2 py-0.5 text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded flex items-center gap-1 cursor-pointer"
                               >
                                 <Terminal className="w-3 h-3" />
                                 <span>Exécuter sur le PC</span>
@@ -329,20 +457,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 </div>
               )}
 
-              {/* Bubble Footer Utilities (Replay Voice & Copy) */}
+              {/* Bubble Footer Utilities (Replay Voice, Copy & Regenerate) */}
               <div className="mt-2.5 pt-2 flex items-center justify-end gap-2 text-slate-400 text-xs">
                 {msg.role === 'jarvis' && (
-                  <button
-                    onClick={() => onReplayAudio(msg.content)}
-                    className="p-1 rounded hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
-                    title="Écouter la réponse"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleRegenerate(msgIdx)}
+                      className="p-1 rounded hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors cursor-pointer"
+                      title="Régénérer avec GPT-6"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onReplayAudio(msg.content)}
+                      className="p-1 rounded hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors cursor-pointer"
+                      title="Écouter la réponse vocalement"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => handleCopyText(msg.id, msg.content)}
-                  className="p-1 rounded hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors"
+                  className="p-1 rounded hover:bg-cyan-950/40 hover:text-cyan-300 transition-colors cursor-pointer"
                   title="Copier le texte"
                 >
                   {copiedId === msg.id ? (
@@ -363,10 +500,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <div className="w-3 h-3 rounded-full bg-cyan-400 animate-ping" />
               <div className="flex flex-col">
                 <span className="font-['Orbitron'] text-xs font-medium tracking-wide">
-                  TRAITEMENT EN COURS...
+                  DÉLIBÉRATION GPT-6 EN COURS...
                 </span>
                 <span className="font-['Rajdhani'] text-[11px] text-slate-400">
-                  JARVIS consulte le réseau et synthétise votre demande
+                  Pensée délibérée, recherche web et validation formelle
                 </span>
               </div>
             </div>
@@ -397,7 +534,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setConfirmAction(null)}
-                className="px-3 py-1.5 text-xs text-slate-300 hover:text-white rounded bg-slate-800/60 hover:bg-slate-700 transition-colors"
+                className="px-3 py-1.5 text-xs text-slate-300 hover:text-white rounded bg-slate-800/60 hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 Annuler
               </button>
@@ -406,7 +543,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   onExecuteLocalAction(confirmAction);
                   setConfirmAction(null);
                 }}
-                className="px-3 py-1.5 text-xs font-semibold text-black bg-amber-400 hover:bg-amber-300 rounded transition-colors"
+                className="px-3 py-1.5 text-xs font-semibold text-black bg-amber-400 hover:bg-amber-300 rounded transition-colors cursor-pointer"
               >
                 Confirmer et exécuter
               </button>

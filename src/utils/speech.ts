@@ -122,8 +122,9 @@ export async function speakWithGemini(
     clearTimeout(timeout);
 
     const data = await response.json();
-    if (!response.ok || !data.audioBase64) {
-      throw new Error(data.error || 'Erreur TTS');
+    if (data.fallbackToBrowser || !response.ok || !data.audioBase64) {
+      onError?.(new Error('Bascule vocale navigateur'));
+      return;
     }
 
     const audioUrl = `data:audio/wav;base64,${data.audioBase64}`;
